@@ -1,0 +1,214 @@
+#include <bits/stdc++.h>
+using namespace std;
+#define double long double
+#define SPEED ios::sync_with_stdio(false); cin.tie(0); cout.tie(0)
+#define eps 0.0000000001
+#define ll long long int
+#define INF 1e18
+#define pb push_back
+#define mp make_pair
+#define FF first
+#define SS second
+const double PI=acos(-1);
+int dcmp(double a){
+	if(fabs(a)<=eps)return 0;
+	if(a>eps)return 1;
+	return -1;
+}
+double coschk(double &x){
+	x = min(x,(double)1.0);
+	x = max(x,(double)-1.0);
+}
+double myacos(double x)
+{
+	coschk(x);
+	return acos(x);
+}
+struct point
+{
+	double x,y;
+	point(){}
+	point(double a,double b){x=a,y=b;}
+	point operator +(point a){return point(a.x+x,a.y+y);}
+	point operator -(point a){return point(-a.x+x,-a.y+y);}
+	point operator *(double a){return point(a*x,a*y);}
+	point operator /(double a){return point(x/a,y/a);}
+	double cross(point a){return x*a.y-y*a.x;}
+	point rotate(double t)
+	{
+		double c=cos(t);
+		double s=sin(t);
+		return point(x*c-y*s,x*s+y*c);
+	}
+	point rotate(double c,double s){
+		return point(x*c-y*s,x*s+y*c);
+	}
+	double dist(point a){return sqrt((x-a.x)*(x-a.x)+(y-a.y)*(y-a.y));}
+	double dist2(point a){return ((x-a.x)*(x-a.x)+(y-a.y)*(y-a.y));}
+	bool ccw(point b,point c){return dcmp((b-(*this)).cross(c-(*this)))>=0;}
+};
+point origin(0,0);
+struct line
+{
+	point a,v;
+	line(){}
+	line(point x,point y){a=x,v=y-x;}
+	point intersect(line l)
+	{
+		double cr=v.cross(l.v);
+		if(dcmp(cr)==0)return point(INF,INF);
+		double num=(l.a-a).cross(l.v);
+		return a+v*(num/cr);
+	}
+};
+
+struct circle
+{
+	point a;
+	double r;
+	circle(){}
+	circle(point x,double _r){a=x,r=_r;}
+	point intersect(circle c)
+	{
+		double d=a.dist(c.a);
+		if(dcmp(d-r-c.r)>0)return point(INF,INF);
+		double cc =(a.dist2(c.a)+r*r-c.r*c.r)/(2.0*d*r);
+		coschk(cc);
+		double s = sqrt(max((double)0,1-cc*cc));
+		return a+(c.a-a).rotate(cc,-s)*(r/d);
+	}
+	pair<point,point> tangent(point x){
+		double d = x.dist(a);
+		double c = r/d;
+		coschk(c);
+		double s = sqrt(max((double)0,1-c*c));
+		return {a+(x-a).rotate(c,s)*(r/d),a+(x-a).rotate(c,-s)*(r/d)};
+	}
+	double areasector(double l){
+		double c = (2.0*r*r-l*l)/2.0/r/r;
+		coschk(c);
+		double t = myacos(c);
+		double s = sqrt(max(1-c*c,(double)0));
+		return 0.5*t*r*r - 0.5*r*r*s;
+	}
+};
+vector<circle> v;
+bool cmp(circle x,circle y)
+{
+	assert(atan2(x.a.y,x.a.x)!=atan2(y.a.y,y.a.x));
+	return atan2(x.a.y,x.a.x)<atan2(y.a.y,y.a.x);
+	if(x.a.y>=0&&y.a.y<0)return 1;
+	if(x.a.y<0&&y.a.y>=0)return 0;
+	if(dcmp(x.a.y)==0&&dcmp(y.a.y)==0.0){return x.a.x>y.a.x;}
+	return origin.ccw(x.a,y.a);
+}
+#define ppp pair<point,point>
+double side(point a)
+{
+	if(dcmp(a.x)>=0&&dcmp(fabs(a.y)-a.x)<=0)return 1;
+	if(dcmp(a.x)<=0&&dcmp(fabs(a.y)+a.x)<=0)return 3;
+	point aa(a.y,a.x);
+	if(dcmp(aa.x)>=0&&dcmp(fabs(aa.y)-aa.x)<=0)return 2;
+	return 4;
+}
+vector<point> lol,to;
+vector<line> sqr;
+double calc(point tan,point agla)
+{
+	int one=side(tan)-1;
+	int two=side(agla)-1;
+	double ans=0;
+	to.clear();
+	to.pb(line(origin,tan).intersect(sqr[one]));
+	if(one==two)
+	{
+		if(!origin.ccw(tan,agla))
+		{
+			to.pb(lol[one]);
+			one=(one+1)%4;
+		}
+	}
+	for(int i=one;i!=two;i=(i+1)%4)
+	{
+		to.pb(lol[i]);
+	}
+	to.pb(line(origin,agla).intersect(sqr[two]));
+	for(int i=1;i<to.size();i++)
+		ans+=fabs(0.5*to[i].cross(to[i-1]));
+	return ans;
+}
+
+main()
+{
+   	//freopen("13.in.txt", "r", stdin),freopen("output.txt", "w", stdout);
+	int t,T;
+	cout<<fixed<<setprecision(18);
+	scanf("%d",&T);
+	t = 0;
+	while(t!=T)
+	{	t++;
+		v.clear();
+		double ans=0;
+		int n;
+		double r,d,l;
+		//cin>>n>>r>>d>>l;
+		scanf("%d %Lf %Lf %Lf",&n,&r,&d,&l);
+		//if(t>1000)cout<<n<<" "<<r<<" "<<d<<" "<<l<<endl;
+		lol.clear();
+		lol.pb(point(l,l));
+		lol.pb(point(-l,l));
+		lol.pb(point(-l,-l));
+		lol.pb(point(l,-l));
+
+		sqr.clear();
+		sqr.pb(line(point(l,0),point(l,l)));
+		sqr.pb(line(point(0,l),point(l,l)));
+		sqr.pb(line(point(-l,0),point(-l,-l)));
+		sqr.pb(line(point(0,-l),point(-l,-l)));
+
+
+		for(int i=0;i<n;i++)
+		{
+			double a,b;
+			scanf("%Lf %Lf",&a,&b);
+			v.pb(circle(point(a,b),r));
+		}
+		if(n==1)
+		{
+			point tan=(v[0].tangent(origin)).SS;
+			point agla=(v[0].tangent(origin)).FF;
+			ans+=calc(tan,agla);
+			ans+=fabs(0.5*tan.cross(agla))-v[0].areasector(tan.dist(agla));
+			printf("%0.16Lf\n", ans);
+			continue;
+		}
+		sort(v.begin(), v.end(),cmp);
+		// cout<<v[0].a.dist2(v[1].a)<<endl;
+		for(int i=0;i<n;i++)
+		{
+			// cout<<v[i].a.x<<" "<<v[i].a.y<<endl;
+			int nx=(i+1)%n;
+			int pre=(i-1+n)%n;
+			// assert(v[i].a.dist2(v[nx].a)>1e-17);
+			//assert(v[i].a.x!=v[nx].a.x);
+			point inter=v[i].intersect(v[pre]);
+			if(inter.x==INF||origin.ccw(v[i].a,v[pre].a))
+				inter=(v[i].tangent(origin)).FF;
+			point agla=v[nx].intersect(v[i]);
+			if(agla.x==INF||(!origin.ccw(v[i].a,v[nx].a)))
+			{
+				agla=(v[nx].tangent(origin)).FF;
+				point tan=(v[i].tangent(origin)).SS;
+				ans+=fabs(0.5*tan.cross(inter))-v[i].areasector(tan.dist(inter));
+				ans+=calc(tan,agla);
+			}
+			else
+			{
+				ans+=fabs(0.5*agla.cross(inter))-v[i].areasector(agla.dist(inter));
+			}
+			//cout<<fixed<<setprecision(10)<<v[i].a.x<<" "<<v[i].a.y<<" "<<ans<<endl;
+		}
+		printf("%0.16Lf\n", ans);
+		fflush(stdout);
+	}
+}
