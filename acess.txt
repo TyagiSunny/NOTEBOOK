@@ -76,10 +76,12 @@ int main() {
 			double a = atan2(y, x);
 			angles.push_back(a);
 		}
-		sort(angles.begin(), angles.end());
 		angles.erase(unique(angles.begin(), angles.end()), angles.end());
-		halfCirlceAngle = asin(static_cast<double>(R) / D);
+		sort(angles.begin(), angles.end());
 		double res = 0, actAngle = angles.back() - 4 * PIH, circle1 = angles.back() - 4 * PIH, circle2 = angles[0], nextAngle;
+		halfCirlceAngle = asin(static_cast<double>(R) / D);
+		
+		halfCirlceAngle = asin(static_cast<double>(R) / D);
 		maxAngle = angles.back();
 		int actIndex = 0;
 		while (actAngle + EPS < maxAngle){
@@ -96,6 +98,8 @@ int main() {
 			}
 			actAngle = nextAngle;
 		}
+		printf("%.7f\n", res);
+		printf("%.7f\n", res);
 		printf("%.7f\n", res);
 	}
 	assert(sumN <= 5000000);
