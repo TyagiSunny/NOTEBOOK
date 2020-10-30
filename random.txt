@@ -1,0 +1,261 @@
+#include <bits/stdc++.h>
+ 
+using namespace std;
+ 
+typedef double ld;
+ 
+const double eps = 1e-5;
+const double PI = acos(-1);
+ 
+bool zero(ld d = 0){
+	return abs(d) < eps;
+}
+struct point{
+	ld x, y;
+ 
+	point() {}
+	point(ld x_, ld y_) {x = x_; y = y_;}
+	// Distance Squared
+	ld dist2(point p = {0, 0}){		
+		return (p.x - x) * (p.x - x) + (p.y - y) * (p.y - y);
+	}
+	// Distance, by default from origin
+	ld dist(point p = {0, 0}) {
+		return sqrt(dist2(p));
+	}
+ 
+	// return a point after rotating b by angle t wrt this
+	point rotate(point b, ld t){
+		ld xx = b.x - x;
+		ld yy = b.y - y;
+		return {xx * cos(t) - yy * sin(t) + x,
+				yy * cos(t) + xx * sin(t) + y};
+	}
+};
+ 
+point origin = point(0, 0);
+ 
+vector<point> intersect(point c1, point c2, ld r){
+	ld x1 = c1.x, y1 = c1.y;
+	ld x2 = c2.x, y2 = c2.y;
+ 
+	ld d = c1.dist(c2);
+ 
+	// one intesecting point
+	if(zero(c1.dist2(c2) - 4*r*r)){
+		return {{x1 + (x2-x1) * r / d,
+				y1 + (y2-y1) * r / d}};
+	}
+ 
+	// no intesection point 
+	if(c1.dist2(c2)+eps > 4*r*r){
+		return {};
+	}
+ 
+	ld Cos_t = d*0.5/r;
+	ld t = acos(Cos_t);
+ 
+	point p = {x1 + (x2-x1)*r/d,
+				y1 + (y2-y1)*r/d};
+ 
+	point p1 = c1.rotate(p, t);
+	point p2 = c1.rotate(p, -t);
+	if (p1.dist2() > p2.dist2()) swap(p1, p2);
+	return {p1, p2};
+}
+ 
+// f = 1 means 'signed'. Twice the area of triangle 
+ld area(point a, point b, point c, bool f = 0){
+	ld ar = a.x * b.y - b.x * a.y;
+	ar += b.x * c.y - c.x * b.y;
+	ar += c.x * a.y - a.x * c.y;
+	if(!f) ar = abs(ar);
+	return ar;
+}
+ 
+point getTangentPt(point c, ld r, ld d, bool upper) {
+	ld t = (asin(r/d) + PI * 0.5 - acos(r/d)) * 0.5;
+	ld dis = sqrtl(d * d - r * r);
+	point p = point(c.x * dis / d, c.y * dis / d);
+	p = origin.rotate(p, t * (upper ? 1 : -1));
+	return p;
+}
+ 
+ld getRealNo() {
+	double x;
+	scanf("%lf", &x);
+	return x;
+}
+ 
+vector<int> v[200100];
+int whoisCommon = -1;
+ 
+bool onSameCircle(vector<int> & a, vector<int> & b) {
+	for (int i = 0; i < a.size(); ++i) {
+		if (count(b.begin(), b.end(), a[i]) > 0) {
+			whoisCommon = a[i];
+			return true;
+		}
+	}
+	return false;
+}
+ 
+ld areaOnSameCircle(point a, point b, ld r, point cen, ld D) {
+	ld totalArea = area(origin, a, b);
+	ld d = a.dist(b) * 0.5;
+	ld t = asin(d/r) + PI * 0.5 - acos(d/r);
+	totalArea -= t*r*r;
+	totalArea += area(a, b, cen);
+	totalArea *= 0.5;
+	return totalArea;
+}
+ 
+point project(point p, ld L) {
+	if (p.x < 0) {
+		point newP = project(point(-p.x, p.y), L);
+		newP.x *= -1;
+		return newP;
+	}
+	if (p.y < 0) {
+		point newP = project(point(p.x, -p.y), L);
+		newP.y *= -1;
+		return newP;
+	}
+	if (p.y > p.x) {
+		if (p.y == 0) p.y = eps;
+		p.x = L/p.y * p.x;
+		p.y = L;
+	}
+	else {
+		if (p.x == 0) p.x = eps;
+		p.y = L/p.x * p.y;
+		p.x = L;
+	}
+	return p;
+}
+ 
+vector<point> corners;
+vector<ld> corSlope = {-3*PI/4, -PI/4, PI/4, 3*PI/4};
+ 
+ld areaOnQuad(point p1, point p2, ld L) {
+	ld t1 = atan2(p1.y, p1.x);
+	ld t2 = atan2(p2.y, p2.x);
+	if (t1 > t2) {
+		return 4*L*L - areaOnQuad(p2, p1, L);
+	}
+	p1 = project(p1, L);
+	p2 = project(p2, L);
+	
+	int j = 0;
+	point lastPoint = p1;
+	ld totalArea = 0;
+	while(j < corners.size() && corSlope[j] <= t1) ++j;
+	while(j < corners.size()) {
+		if (corSlope[j] >= t2) break;
+		totalArea += area(origin, lastPoint, corners[j]);
+		lastPoint = corners[j];
+		j += 1;
+	}
+	totalArea += area(origin, lastPoint, p2);
+	totalArea *= 0.5;
+	return totalArea;
+}
+ 
+void solveSingle(ld R, ld D, ld L, point c) {
+	point p1 = getTangentPt(c, R, D, false);
+	point p2 = getTangentPt(c, R, D, true);
+	ld totalArea = areaOnSameCircle(p1, p2, R, c, D);
+	totalArea += areaOnQuad(p2, p1, L);
+	printf("%.10lf\n", (double)totalArea);
+}
+ 
+void initCorners(ld L) {
+	corners = {point(-L, -L), point(L, -L), point(L, L), point(-L, L)};
+	return ;
+}
+void solve(int n) {
+	int R_, D_, L_;
+	scanf("%d%d%d", &R_, &D_, &L_);
+	assert(2 <= D_ && D_ <= 100000);
+	assert(1 <= R_ && R_ <= D_);
+	assert(R_ + D_ < L_ && L_ <= 300000);
+	
+	ld R = R_, D = D_, L = L_;
+ 
+	initCorners(L);
+	
+	vector<point> disks(n);
+	vector<int> idx(n);
+	for (int i = 0; i < n; ++i) {
+		ld x = getRealNo();
+		ld y = getRealNo();
+		assert(-1e6 <= x + eps && x <= 1e6 + eps);
+		assert(-1e6 <= y + eps && y <= 1e6 + eps);
+		assert(zero(x*x+y*y-D*D)); // ye ensure karna bada muskil hai
+		
+		disks[i] = point(x, y);
+		
+		idx[i] = i;
+		v[i].clear();
+		v[i+n].clear();
+	}
+	if (n == 1) return solveSingle(R, D, L, disks[0]);
+	sort(idx.begin(), idx.end(), [&](int a, int b) {
+		return atan2(disks[a].y, disks[a].x) < atan2(disks[b].y, disks[b].x);
+	});
+	vector<point> pts;
+	for (int i = 0; i < n; ++i) {
+		point c1 = disks[idx[i]];
+		point c2 = disks[idx[(i+1)%n]];
+		vector<point> sect = intersect(c1, c2, R);
+		bool f = true;
+		if (sect.size() > 0) {
+			ld t = atan2(c2.y, c2.x) - atan2(c1.y, c1.x);
+			if (t < 0) t += 2.0 * PI;
+			f = (t < PI);
+		}
+		if (sect.size() == 0 || !f) {
+			point p1 = getTangentPt(c1, R, D, true);
+			point p2 = getTangentPt(c2, R, D, false);
+			v[pts.size()].push_back(i);
+			pts.push_back(p1);
+			v[pts.size()].push_back((i+1)%n);
+			pts.push_back(p2);
+		}
+		else {
+			assert(sect[0].dist() <= D + eps);
+			v[pts.size()].push_back(i);
+			v[pts.size()].push_back((i+1)%n);
+			pts.push_back(sect[0]);
+		}
+	}
+	
+	ld totalArea = 0;
+	for (int i = 0; i < pts.size(); ++i) {
+		ld tmpArea = 0;
+		int i2 = (i + 1) % pts.size();
+		if (onSameCircle(v[i], v[i2])) {
+			tmpArea = areaOnSameCircle(pts[i], pts[i2], R, disks[idx[whoisCommon]], D);
+		}
+		else {
+			tmpArea = areaOnQuad(pts[i], pts[i2], L);
+		}
+		totalArea += tmpArea;
+	}
+	printf("%.20lf\n", (double)totalArea);
+	assert(0 <= totalArea && totalArea <= 4*L*L);
+}
+ 
+int main() {
+	int T, n, sumN = 0;
+	scanf("%d", &T);
+	assert(1 <= T && T <= 100000);
+	while (T--) {
+		scanf("%d", &n);
+		sumN += n;
+		assert(1 <= n && n <= 100000);
+		assert(1 <= sumN && sumN <= 500000);
+		solve(n);
+	}
+	return 0;
+} 
